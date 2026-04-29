@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        (function () {
+            var mobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+                      || (window.innerWidth < 1024 && 'ontouchstart' in window);
+            window.location.replace(mobile ? 'mobile.html' : 'desktop.html');
+        })();
+    </script>
+</head>
+<body></body>
+</html>

@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>William Theodosatos</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: #fff;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            user-select: none;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 36px 48px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .artist-name {
+            font-size: 11px;
+            font-weight: 400;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: #111;
+        }
+
+        .contact {
+            pointer-events: all;
+            text-align: right;
+        }
+
+        .contact a {
+            display: block;
+            font-size: 11px;
+            font-weight: 400;
+            letter-spacing: 0.08em;
+            color: #111;
+            text-decoration: none;
+            line-height: 2.1;
+            transition: opacity 0.2s;
+        }
+
+        .contact a:hover { opacity: 0.35; }
+
+        .blurb-left {
+            position: fixed;
+            bottom: 40px;
+            left: 48px;
+            max-width: 240px;
+            font-size: 11px;
+            font-weight: 400;
+            line-height: 1.85;
+            color: #bbb;
+            letter-spacing: 0.03em;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        #overlay {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.35s ease;
+            z-index: 8999;
+        }
+
+        #overlay.active {
+            opacity: 0.65;
+            pointer-events: all;
+        }
+
+        /* per-image blurb that appears beside the enlarged image */
+        #imageBlurb {
+            position: fixed;
+            width: 210px;
+            font-size: 11px;
+            font-weight: 400;
+            line-height: 1.85;
+            color: #fff;
+            letter-spacing: 0.03em;
+            text-align: left;
+            z-index: 9001;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease 0.1s;
+        }
+
+        #imageBlurb.visible {
+            opacity: 1;
+        }
+
+        #imageBlurb .title {
+            display: block;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-size: 10px;
+            margin-bottom: 10px;
+        }
+
+        .artwork {
+            position: absolute;
+            cursor: grab;
+            transform-origin: center center;
+            border: 3px solid transparent;
+            transition:
+                transform    0.45s cubic-bezier(0.34, 1.18, 0.64, 1),
+                left         0.45s cubic-bezier(0.34, 1.18, 0.64, 1),
+                top          0.45s cubic-bezier(0.34, 1.18, 0.64, 1),
+                filter       0.2s ease,
+                border-color 0.15s ease;
+        }
+
+        .artwork:hover {
+            border-color: #888;
+            filter: drop-shadow(6px 6px 0px #888);
+        }
+
+        .artwork.is-enlarged:hover {
+            border-color: transparent;
+            filter: none;
+        }
+
+        .artwork:active { cursor: grabbing; }
+
+        .artwork img {
+            display: block;
+            width: 100%;
+            height: auto;
+            pointer-events: none;
+            -webkit-user-drag: none;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="artist-name">William Theodosatos</div>
+        <div class="contact">
+            <a href="mailto:william@theodosatos.com">william@theodosatos.com</a>
+            <a href="https://instagram.com" target="_blank">Instagram</a>
+        </div>
+    </header>
+
+    <div class="blurb-left">
+        Painting and illustration.<br>
+        Open for commissions and editorial.
+    </div>
+
+    <div id="overlay"></div>
+    <div id="imageBlurb"></div>
+
+    <script>
+        const MAX_W = 950;
+        const MAX_H = 725;
+        const BLURB_W = 210;
+        const BLURB_GAP = 32;
+
+        const images = [
+            'william-theodosatos-asset.jpg',
+            'william-theodosatos-asset2.jpg',
+            'william-theodosatos-asset3.jpg',
+            'william-theodosatos-asset4.jpg',
+            'william-theodosatos-asset5.jpg',
+            'william-theodosatos-asset6.jpg',
+        ];
+
+        const blurbs = [
+            '<span class="title">Untitled I — 2023</span>Oil on linen, 24 × 18 in.<br><br>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore.',
+            '<span class="title">Untitled II — 2023</span>Gouache on paper, 16 × 12 in.<br><br>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo.',
+            '<span class="title">Untitled III — 2022</span>Oil on canvas, 30 × 24 in.<br><br>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
+            '<span class="title">Untitled IV — 2022</span>Acrylic on board, 20 × 16 in.<br><br>Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim.',
+            '<span class="title">Untitled V — 2024</span>Oil on linen, 36 × 28 in.<br><br>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.',
+            '<span class="title">Untitled VI — 2024</span>Ink and gouache on paper, 14 × 11 in.<br><br>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit consequuntur magni.',
+        ];
+
+        const configs = [
+            { x: 0.4817, y: 0.0491, w: 230, rot: -2   },
+            { x: 0.2858, y: 0.3709, w: 200, rot:  1.5 },
+            { x: 0.3390, y: 0.1894, w: 250, rot: -1   },
+            { x: 0.5298, y: 0.5593, w: 210, rot:  2.5 },
+            { x: 0.3985, y: 0.5387, w: 215, rot: -3   },
+            { x: 0.3730, y: 0.4212, w: 195, rot:  1   },
+        ];
+
+        // layer order bottom→top: image 3,2,4,1,6,5 (1-indexed)
+        const zPriority = [3, 1, 0, 2, 5, 4];
+
+        let zTop = 106;
+        let currentEnlarged = null;
+
+        const overlay   = document.getElementById('overlay');
+        const imageBlurb = document.getElementById('imageBlurb');
+
+        overlay.addEventListener('click', () => {
+            if (currentEnlarged) collapse(currentEnlarged);
+        });
+
+        images.forEach((src, i) => {
+            const cfg = configs[i];
+
+            const el = document.createElement('div');
+            el.className = 'artwork';
+            el.id = 'aw' + i;
+            el.style.width  = cfg.w + 'px';
+            el.style.left   = (cfg.x * window.innerWidth)  + 'px';
+            el.style.top    = (cfg.y * window.innerHeight) + 'px';
+            el.style.zIndex = 100 + zPriority[i];
+            el.style.transform = `rotate(${cfg.rot}deg) scale(1)`;
+            el.dataset.rot           = cfg.rot;
+            el.dataset.enlarged      = 'false';
+            el.dataset.enlargedScale = 2;
+            el.dataset.displayedH    = cfg.w;
+
+            const img = document.createElement('img');
+            img.src = src;
+            img.onload = () => {
+                const displayedH = cfg.w * (img.naturalHeight / img.naturalWidth);
+                el.dataset.displayedH    = displayedH;
+                el.dataset.enlargedScale = Math.min(MAX_W / cfg.w, MAX_H / displayedH);
+            };
+
+            el.appendChild(img);
+            document.body.appendChild(el);
+
+            let dragging = false, moved = false;
+            let sx, sy, ox, oy;
+
+            el.addEventListener('mousedown', e => {
+                e.preventDefault();
+                dragging = true;
+                moved    = false;
+                sx = e.clientX;
+                sy = e.clientY;
+                ox = parseFloat(el.style.left);
+                oy = parseFloat(el.style.top);
+                el.style.zIndex     = ++zTop;
+                el.style.transition = 'none';
+            });
+
+            window.addEventListener('mousemove', e => {
+                if (!dragging) return;
+                const dx = e.clientX - sx;
+                const dy = e.clientY - sy;
+                if (Math.abs(dx) > 4 || Math.abs(dy) > 4) moved = true;
+                el.style.left = (ox + dx) + 'px';
+                el.style.top  = (oy + dy) + 'px';
+            });
+
+            window.addEventListener('mouseup', () => {
+                if (!dragging) return;
+                dragging = false;
+                el.style.transition = '';
+                el.getBoundingClientRect();
+                if (!moved) toggle(el);
+            });
+        });
+
+        function toggle(el) {
+            if (el.dataset.enlarged === 'true') {
+                collapse(el);
+            } else {
+                if (currentEnlarged) collapse(currentEnlarged);
+                enlarge(el);
+            }
+        }
+
+        function enlarge(el) {
+            const idx   = parseInt(el.id.replace('aw', ''));
+            const scale = parseFloat(el.dataset.enlargedScale);
+            const w     = parseFloat(el.style.width);
+            const dh    = parseFloat(el.dataset.displayedH);
+
+            el.dataset.homeLeft = el.style.left;
+            el.dataset.homeTop  = el.style.top;
+
+            // shift image left so the image+blurb unit is optically centered
+            const shift = (BLURB_W + BLURB_GAP) / 2;
+            el.style.left      = (window.innerWidth  / 2 - w  / 2 - shift) + 'px';
+            el.style.top       = (window.innerHeight / 2 - dh / 2) + 'px';
+            el.style.zIndex    = 9000;
+            el.style.transform = `scale(${scale})`;
+            el.dataset.enlarged = 'true';
+            el.classList.add('is-enlarged');
+
+            // position blurb to the right of the shifted image, vertically centered
+            const imageVisualRight = window.innerWidth / 2 - shift + (w * scale) / 2;
+            const blurbLeft = Math.min(window.innerWidth - BLURB_W - 16, imageVisualRight + BLURB_GAP);
+            imageBlurb.style.left      = blurbLeft + 'px';
+            imageBlurb.style.top       = '50%';
+            imageBlurb.style.transform = 'translateY(-50%)';
+            imageBlurb.innerHTML = blurbs[idx];
+            imageBlurb.classList.add('visible');
+
+            currentEnlarged = el;
+            overlay.classList.add('active');
+        }
+
+        function collapse(el) {
+            const idx = parseInt(el.id.replace('aw', ''));
+            const rot = el.dataset.rot;
+            el.style.left      = el.dataset.homeLeft;
+            el.style.top       = el.dataset.homeTop;
+            el.style.zIndex    = 100 + zPriority[idx];
+            el.style.transform = `rotate(${rot}deg) scale(1)`;
+            el.dataset.enlarged = 'false';
+            el.classList.remove('is-enlarged');
+
+            currentEnlarged = null;
+            overlay.classList.remove('active');
+            imageBlurb.classList.remove('visible');
+        }
+
+        // arrow-key navigation — collapses old image back to its layer, enlarges next
+        document.addEventListener('keydown', e => {
+            if (!currentEnlarged) return;
+            if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+            e.preventDefault();
+
+            const currentIdx = parseInt(currentEnlarged.id.replace('aw', ''));
+            const n = images.length;
+            const nextIdx = e.key === 'ArrowRight'
+                ? (currentIdx + 1) % n
+                : (currentIdx - 1 + n) % n;
+
+            // inline collapse: restore z to original layer so new image sits on top
+            const old = currentEnlarged;
+            const oldIdx = parseInt(old.id.replace('aw', ''));
+            old.style.left      = old.dataset.homeLeft;
+            old.style.top       = old.dataset.homeTop;
+            old.style.zIndex    = 100 + zPriority[oldIdx];
+            old.style.transform = `rotate(${old.dataset.rot}deg) scale(1)`;
+            old.dataset.enlarged = 'false';
+            old.classList.remove('is-enlarged');
+
+            imageBlurb.classList.remove('visible');
+
+            currentEnlarged = null;
+            enlarge(document.getElementById('aw' + nextIdx));
+        });
+    </script>
+
+</body>
+</html>
